@@ -1,0 +1,17 @@
+[Unit]
+Description=PhotoNotes Flask Application via Gunicorn
+After=network.target
+
+[Service]
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/opt/photonotes
+EnvironmentFile=/etc/photonotes.env
+ExecStart=/opt/photonotes/venv/bin/gunicorn --workers 2 --bind 0.0.0.0:5000 --access-logfile - --error-logfile - app:app
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

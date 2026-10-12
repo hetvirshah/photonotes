@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PhotoNotes - AWS Architecture Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #111827;
+      --card-border: #1f2937;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent: #ff9900; /* AWS Orange */
+      --accent-hover: #e08800;
+      --accent-light: rgba(255, 153, 0, 0.12);
+      --primary: #3b82f6;
+      --success: #10b981;
+      --danger: #ef4444;
+      --surface: #1e293b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding-bottom: 60px;
+      min-height: 100vh;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Header */
+    header {
+      padding: 24px 0 16px 0;
+      border-bottom: 1px solid var(--card-border);
+      background: linear-gradient(180deg, rgba(17, 24, 39, 0.8) 0%, rgba(11, 15, 25, 0.4) 100%);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #ff9900 0%, #ff5e00 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 4px 14px rgba(255, 153, 0, 0.35);
+    }
+
+    .brand h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+    }
+
+    .brand span {
+      color: var(--accent);
+    }
+
+    .arch-tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .arch-badge {
+      font-size: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 4px 10px;
+      background: var(--surface);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      color: var(--text-muted);
+    }
+
+    .arch-badge.highlight {
+      border-color: rgba(255, 153, 0, 0.3);
+      color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    /* EC2 Instance Demo Banner */
+    .instance-banner {
+      margin: 24px 0;
+      padding: 16px 20px;
+      background: linear-gradient(90deg, #131b2e 0%, #162238 100%);
+      border: 1px solid #25334d;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .banner-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .pulse-dot {
+      width: 10px;
+      height: 10px;
+      background-color: var(--success);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    .banner-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .metadata-values {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+
+    .meta-label {
+      color: var(--text-muted);
+    }
+
+    .meta-code {
+      font-family: 'JetBrains Mono', monospace;
+      background: #0b0f19;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid #1f2937;
+      color: #38bdf8;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    /* Alerts */
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .alert-error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    .alert-success {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #6ee7b7;
+    }
+
+    /* Layout Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    @media (max-width: 860px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Card */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .card h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Form */
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 100px;
+      background: #0b0f19;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 12px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      resize: vertical;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .char-count {
+      text-align: right;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      border: 2px dashed var(--card-border);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      background: #0b0f19;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .file-input-wrapper:hover {
+      border-color: var(--accent);
+      background: rgba(255, 153, 0, 0.03);
+    }
+
+    .file-input-wrapper input[type="file"] {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .file-hint {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .file-name {
+      margin-top: 8px;
+      font-size: 0.8rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent);
+      word-break: break-all;
+    }
+
+    .submit-btn {
+      width: 100%;
+      background: linear-gradient(135deg, var(--accent) 0%, #ff5e00 100%);
+      color: #0b0f19;
+      font-weight: 700;
+      font-size: 0.95rem;
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .submit-btn:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+
+    .submit-btn:active {
+      transform: translateY(0);
+    }
+
+    /* Notes Grid */
+    .notes-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .notes-count {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .notes-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .note-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .note-card:hover {
+      border-color: #374151;
+      transform: translateY(-2px);
+    }
+
+    .note-image-container {
+      width: 100%;
+      height: 200px;
+      background: #0b0f19;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .note-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s;
+    }
+
+    .note-card:hover .note-img {
+      transform: scale(1.03);
+    }
+
+    .presigned-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(11, 15, 25, 0.85);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 153, 0, 0.4);
+      color: var(--accent);
+      font-size: 0.65rem;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .note-content {
+      padding: 16px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .note-text {
+      font-size: 0.92rem;
+      color: #e5e7eb;
+      margin-bottom: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .note-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      border-top: 1px solid #1f2937;
+      padding-top: 10px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .empty-state {
+      background: var(--card-bg);
+      border: 1px dashed var(--card-border);
+      border-radius: 12px;
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .empty-icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+      opacity: 0.6;
+    }
+
+    /* Architecture Footer */
+    .arch-footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--card-border);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .arch-item {
+      background: rgba(17, 24, 39, 0.5);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .arch-item strong {
+      color: #f3f4f6;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .api-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .api-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="container header-content">
+      <div class="brand">
+        <div class="logo-icon">&#128247;</div>
+        <div>
+          <h1>Photo<span>Notes</span></h1>
+        </div>
+      </div>
+      <div class="arch-tags">
+        <span class="arch-badge highlight">ALB</span>
+        <span class="arch-badge highlight">EC2 Auto Scaling</span>
+        <span class="arch-badge highlight">RDS Multi-AZ</span>
+        <span class="arch-badge highlight">Private S3</span>
+        <span class="arch-badge">IMDSv2</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Server Metadata Demonstration Banner -->
+    <div class="instance-banner" id="ec2-banner">
+      <div class="banner-left">
+        <div class="pulse-dot"></div>
+        <div>
+          <div class="banner-title">Serving EC2 Instance Target</div>
+          <div style="font-size: 0.75rem; color: #9ca3af;">Demonstrates ALB round-robin routing &amp; failover</div>
+        </div>
+      </div>
+      <div class="metadata-values">
+        <div class="meta-item">
+          <span class="meta-label">Instance ID:</span>
+          <span class="meta-code" id="meta-instance-id">{{ metadata.instance_id }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Availability Zone:</span>
+          <span class="meta-code" id="meta-az">{{ metadata.availability_zone }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error/Success Flash Alerts -->
+    {% if error %}
+    <div class="alert alert-error">
+      <span>&#9888;</span>
+      <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    {% if message %}
+    <div class="alert alert-success">
+      <span>&#10003;</span>
+      <span>{{ message }}</span>
+    </div>
+    {% endif %}
+
+    <div class="main-grid">
+      <!-- Upload Form Sidebar -->
+      <section class="card">
+        <h2>&#9998; Post a New Note</h2>
+        <form action="/notes" method="POST" enctype="multipart/form-data" id="note-form">
+          <div class="form-group">
+            <label for="note_text">Note Text (max 500 characters)</label>
+            <textarea 
+              id="note_text" 
+              name="note_text" 
+              maxlength="500" 
+              placeholder="What are you observing or documenting?" 
+              required
+              oninput="updateCount(this)"></textarea>
+            <div class="char-count" id="char-counter">0 / 500</div>
+          </div>
+
+          <div class="form-group">
+            <label>Photo Attachment (JPG, PNG, GIF &le; 5 MB)</label>
+            <div class="file-input-wrapper">
+              <input 
+                type="file" 
+                id="photo" 
+                name="photo" 
+                accept=".jpg,.jpeg,.png,.gif,image/jpeg,image/png,image/gif" 
+                required 
+                onchange="handleFile(this)">
+              <div class="file-hint">&#128206; Click or drop photo here</div>
+              <div class="file-name" id="file-display">No file chosen</div>
+            </div>
+          </div>
+
+          <button type="submit" class="submit-btn" id="submit-btn">
+            <span>Upload to S3 &amp; Save Note</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- Notes Feed -->
+      <section>
+        <div class="notes-header">
+          <h2>&#128220; Recent Notes</h2>
+          <div class="notes-count">
+            <span>Showing {{ notes|length }} latest</span>
+          </div>
+        </div>
+
+        {% if notes %}
+        <div class="notes-list" id="notes-grid">
+          {% for note in notes %}
+          <div class="note-card">
+            <div class="note-image-container">
+              <img src="{{ note.photo_url }}" alt="Attached photo for note #{{ note.id }}" class="note-img" loading="lazy">
+              <div class="presigned-badge">Presigned S3 GET (15m)</div>
+            </div>
+            <div class="note-content">
+              <p class="note-text">{{ note.note_text }}</p>
+              <div class="note-footer">
+                <span>#{{ note.id }}</span>
+                <span>{{ note.created_at }}</span>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">&#128248;</div>
+          <h3>No notes posted yet</h3>
+          <p>Be the first to upload a photo and record an observation above!</p>
+        </div>
+        {% endif %}
+      </section>
+    </div>
+
+    <!-- AWS Architecture Info -->
+    <footer class="arch-footer">
+      <div class="arch-item">
+        <strong>ALB Health Checks</strong>
+        <span>Uses shallow <a href="/health" class="api-link">/health</a> so RDS Multi-AZ failovers don't take healthy EC2 targets out of service.</span>
+      </div>
+      <div class="arch-item">
+        <strong>Deep Health Check</strong>
+        <span><a href="/health/deep" class="api-link">/health/deep</a> verifies database connectivity for ops monitoring.</span>
+      </div>
+      <div class="arch-item">
+        <strong>JSON API</strong>
+        <span>Fetch raw JSON data with presigned URLs via <a href="/notes" class="api-link">/notes</a>.</span>
+      </div>
+      <div class="arch-item">
+        <strong>Security &amp; IAM</strong>
+        <span>Zero hardcoded AWS credentials; authenticates via EC2 Instance Profile role &amp; IMDSv2.</span>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    function updateCount(el) {
+      document.getElementById('char-counter').innerText = el.value.length + ' / 500';
+    }
+
+    function handleFile(input) {
+      const display = document.getElementById('file-display');
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        display.innerText = file.name + ' (' + sizeMb + ' MB)';
+        if (file.size > 5 * 1024 * 1024) {
+          alert('Warning: File exceeds maximum allowed size of 5 MB.');
+        }
+      } else {
+        display.innerText = 'No file chosen';
+      }
+    }
+  </script>
+</body>
+</html>
